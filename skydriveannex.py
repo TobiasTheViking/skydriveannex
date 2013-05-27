@@ -223,7 +223,8 @@ def main():
         deleteFile(ANNEX_KEY, ANNEX_FOLDER)
     else:
         setup = '''
-Please run the following command in your annex directory
+Please run the following commands in your annex directory:
+
 git config annex.skydrive-hook '/usr/bin/python2 %s/skydriveannex.py'
 git annex initremote skydrive type=hook hooktype=skydrive encryption=%s
 git annex describe skydrive "the skydrive library"
