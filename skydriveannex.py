@@ -69,23 +69,12 @@ def postFile(subject, filename, folder):
 def findInFolder(subject, folder="me/skydrive"):
     common.log("%s(%s) - %s(%s)" % (repr(subject), type(subject), repr(folder), type(folder)), 0)
 
-    from collections import defaultdict
-
-    def tree_node(): return defaultdict(tree_node)
-
-    def recurse(obj_id):
-        node = tree_node()
-        for obj in api.listdir(obj_id):
-            common.log("BLA: " + repr(obj))
-            node[obj['name']] = recurse(obj['id']) \
-                if obj['type'] in ['folder', 'album'] else obj['type']
-            return node
-    #res = {api.info(folder)['name']: recurse(folder)}
     for item in api.listdir(folder):
-        common.log("name: " + repr(item["name"]) + " - " + repr(item))
+        common.log("name: " + repr(item["name"]) + " - " + repr(item), 3)
         if item["name"] == subject:
             common.log("Done: " + repr(item["id"]))
             return item["id"]
+
     common.log("Failure")
     return False
 
