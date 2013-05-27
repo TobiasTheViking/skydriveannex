@@ -29,7 +29,7 @@ import skydrive.api_v5
 api = skydrive.api_v5.PersistentSkyDriveAPI.from_conf(pwd + "/skydriveannex.creds")
 
 
-def login(user, pword):
+def login():
     common.log("")
     try:
         ret = api.auth_get_token()
@@ -181,15 +181,8 @@ def main():
         conf = {"folder": "gitannex"}
 
     common.log("Conf: " + repr(conf), 2)
-    if "uname" not in conf:
-        conf["uname"] = raw_input("Please enter your skydrive email address: ")
-        common.log("e-mail set to: " + conf["uname"])
 
-    if "pword" not in conf:
-        conf["pword"] = raw_input("Please enter your skydrive password: ")
-        common.log("password set to: " + conf["pword"], 3)
-
-    login(conf["uname"], conf["pword"])
+    login()
     
     folder = findInFolder(conf["folder"])
     if folder:
@@ -238,7 +231,6 @@ git annex describe skydrive "the skydrive library"
         print setup
 
         saveFile(pwd + "/skydriveannex.conf", json.dumps(conf))
-        common.log("saving skydriveannex.conf file.")
         sys.exit(1)
 
 t = time.time()
