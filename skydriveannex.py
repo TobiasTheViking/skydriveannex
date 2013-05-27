@@ -26,7 +26,7 @@ else:
 
 import CommonFunctions as common
 import skydrive.api_v5
-api = skydrive.api_v5.PersistentSkyDriveAPI.from_conf("skydriveannex.creds")
+api = skydrive.api_v5.PersistentSkyDriveAPI.from_conf(pwd + "/skydriveannex.creds")
 
 
 def login(user, pword):
