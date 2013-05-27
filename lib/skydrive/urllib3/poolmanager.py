@@ -1,0 +1,1 @@
+../../../../share/pyshared/urllib3/poolmanager.py
