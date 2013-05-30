@@ -11,7 +11,7 @@ import urllib
 import urllib2
 
 conf = False
-version = "0.1.0"
+version = "0.1.1"
 plugin = "skydriveannex-" + version
 
 pwd = os.path.dirname(__file__)
@@ -147,6 +147,19 @@ def createFolder(path="me/skydrive/", folder=""):
     common.log("Done: "+ res["id"])
     return res["id"]
 
+# Ugly hack since skydrive isn't case sensitive.
+# Add an uppercase C in front of all uppercase letters.
+def fixFolder(ah):
+    common.log(ah)
+    tmp = ""
+    for ch in ah:
+        if ch != ch.lower():
+            tmp += "C" + ch
+        else:
+            tmp += ch
+    common.log("Done: " + tmp)
+    return tmp
+
 def main():
     global conf
     args = sys.argv
@@ -168,9 +181,6 @@ def main():
     if ANNEX_FILE:
         envargs += ["ANNEX_FILE=" + ANNEX_FILE]
     common.log("ARGS: " + repr(" ".join(envargs + args)))
-
-    #ANNEX_HASH_1 = ANNEX_HASH_1 + "-"
-    #ANNEX_HASH_2 = ANNEX_HASH_2 + "-"
 
     conf = readFile(pwd + "/skydriveannex.conf")
     try:
@@ -194,6 +204,7 @@ def main():
         ANNEX_FOLDER = folder + "/"
 
     if ANNEX_HASH_1:
+        ANNEX_HASH_1 = fixFolder(ANNEX_HASH_1)
         folder = findInFolder(ANNEX_HASH_1, ANNEX_FOLDER)
         if folder:
             common.log("Using folder1: " + repr(folder))
@@ -204,6 +215,7 @@ def main():
             ANNEX_FOLDER = folder + "/"
 
     if ANNEX_HASH_2:
+        ANNEX_HASH_2 = fixFolder(ANNEX_HASH_2)
         folder = findInFolder(ANNEX_HASH_2, ANNEX_FOLDER)
         if folder:
             common.log("Using folder2: " + repr(folder))
