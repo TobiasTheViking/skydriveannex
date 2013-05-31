@@ -11,7 +11,7 @@ import urllib
 import urllib2
 
 conf = False
-version = "0.1.1"
+version = "0.1.2"
 plugin = "skydriveannex-" + version
 
 pwd = os.path.dirname(__file__)
@@ -191,6 +191,15 @@ def main():
         conf = {"folder": "gitannex"}
 
     common.log("Conf: " + repr(conf), 2)
+
+
+    if ANNEX_FILE:
+        upper_limit = 104857600
+        common.log("pre %s size: %s more than %s." % ( ANNEX_FILE, os.path.getsize(ANNEX_FILE), upper_limit))
+        if os.path.getsize(ANNEX_FILE) > upper_limit:
+            common.log("%s size: %s more than %s. Skipping" % ( ANNEX_FILE, os.path.getsize(ANNEX_FILE), upper_limit))
+            sys.exit(1)
+
 
     login()
     
