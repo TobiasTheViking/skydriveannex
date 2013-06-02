@@ -193,7 +193,7 @@ def main():
     common.log("Conf: " + repr(conf), 2)
 
 
-    if ANNEX_FILE:
+    if ANNEX_FILE and os.path.exists(ANNEX_FILE):
         upper_limit = 104857600
         common.log("pre %s size: %s more than %s." % ( ANNEX_FILE, os.path.getsize(ANNEX_FILE), upper_limit))
         if os.path.getsize(ANNEX_FILE) > upper_limit:
