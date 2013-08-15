@@ -64,6 +64,7 @@ def postFile(subject, filename, folder):
     if res:
         common.log("Done: " + repr(res))
     else:
+        print("Failed to post: " + repr(res))
         sys.exit(1)
 
 def findInFolder(subject, folder="me/skydrive"):
@@ -197,7 +198,7 @@ def main():
         upper_limit = 104857600
         common.log("pre %s size: %s more than %s." % ( ANNEX_FILE, os.path.getsize(ANNEX_FILE), upper_limit))
         if os.path.getsize(ANNEX_FILE) > upper_limit:
-            common.log("%s size: %s more than %s. Skipping" % ( ANNEX_FILE, os.path.getsize(ANNEX_FILE), upper_limit))
+            print("%s size: %s more than %s. Skipping" % ( ANNEX_FILE, os.path.getsize(ANNEX_FILE), upper_limit))
             sys.exit(1)
 
 
@@ -249,6 +250,7 @@ Please run the following commands in your annex directory:
 git config annex.skydrive-hook '/usr/bin/python2 %s/skydriveannex.py'
 git annex initremote skydrive type=hook hooktype=skydrive encryption=%s
 git annex describe skydrive "the skydrive library"
+git annex content skydrive exclude=largerthan=100mb
 ''' % (os.getcwd(), "shared")
         print setup
 
@@ -256,6 +258,9 @@ git annex describe skydrive "the skydrive library"
         sys.exit(1)
 
 t = time.time()
+if dbglevel > 0:
+    sys.stderr.write("\n")
+
 common.log("START")
 if __name__ == '__main__':
     main()

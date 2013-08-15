@@ -27,3 +27,4 @@ Run the program once to set it up.
     git config annex.skydrive-hook '/usr/bin/python2 ~/skydriveannex/skydriveannex.py'
     git annex initremote skydrive type=hook hooktype=skydrive encryption=shared
     git annex describe skydrive "the skydrive library"
+    git annex content imap exclude=largerthan=100mb
