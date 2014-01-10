@@ -1,0 +1,286 @@
+#!/usr/bin/env python2
+import os
+import re
+import sys
+import json
+import time
+import inspect
+import webbrowser
+import cookielib
+import urllib
+import urllib2
+
+try:
+    dbglevel = int(os.getenv("DBGLEVEL") or 0)
+except:
+    dbglevel = 0
+
+conf = {}
+version = "0.2.0"
+plugin = "skydriveannex-" + version
+
+pwd = os.path.realpath(__file__)
+pwd = pwd[:pwd.rfind("/")]
+if dbglevel:
+    sys.stderr.write("Path: " + repr(pwd) + "\n")
+
+sys.path.append(pwd + '/lib')
+
+import CommonFunctions as common
+import skydrive.api_v5
+api = None
+
+def login(token=None, conf={'client': {'secret': 'HgkEDnsuysRqhpe3s3vyvznzrMOlTaCo', 'id': '000000004C0F20A9'}}):
+    common.log(repr(token) + " - " + repr(len(conf)))
+    global api
+    api = skydrive.api_v5.PersistentSkyDriveAPI.from_json(conf)
+
+    if token and False:
+        api.auth_user_process_url(token)
+        ret = api.auth_get_token()
+
+    try:
+        ret = api.auth_get_token()
+    except Exception as e:
+        common.log("EXCEPTION api.auth_get_token:" + repr(e), -1)
+        if repr(e).find("Insufficient authentication data provided") > -1:
+            url = api.auth_user_get_url()
+            webbrowser.open(url, True, True)
+            common.log("Please authenticate in browser: " + repr(url))
+            common.log("Please run again with OAUTH='URL after last redirect' git annex initremote...")
+
+        return False
+        
+    ret, ncreds = ret
+    common.log('API authorization was completed successfully: ' + repr(ret))
+
+    common.log("res: " + repr(ret), 3)
+    if len(ret) == 3:
+        common.log("Done")
+        return ncreds
+    else:
+        common.log("Failure: " + repr(ret))
+        return False
+
+def postFile(subject, filename, folder):
+    common.log("%s to %s - %s" % ( repr(filename), folder, subject))
+
+    url = "https://apis.live.net/v5.0/%s/files?access_token=%s" % ( folder.replace("/", ""), api.auth_access_token)
+
+    files = {"file": (subject, open(filename, 'rb').read())}
+    res = common.fetchPage({"link": url, "progress": "true", "post_files": files, "error": 2})
+
+    if res:
+        common.log("Done: " + repr(res))
+        return True
+    else:
+        print("Failed to post: " + repr(res))
+        return False
+
+def findInFolder(subject, folder="me/skydrive"):
+    common.log("%s(%s) - %s(%s)" % (repr(subject), type(subject), repr(folder), type(folder)), 0)
+
+    try:
+        items = api.listdir(folder)
+    except Exception as e:
+        common.log("Exception: " + repr(e), -1)
+        return False
+
+    for item in items:
+        common.log("subject: " + repr(subject) + " - name: " + repr(item["name"]) + " - " + repr(item), 3)
+        if item["name"] == subject:
+            common.log("Done: " + repr(item["id"]))
+            return item["id"]
+
+    common.log("Failure")
+    return False
+
+def checkFile(subject, folder):
+    common.log(subject)
+    global m
+
+    tmp_file = findInFolder(subject, folder)
+    if tmp_file:
+        common.log("Found: " + repr(tmp_file))
+        return True
+    else:
+        common.log("Failure")
+        return False
+
+def getFile(subject, filename, folder):
+    common.log(subject)
+    global m
+
+    tmp_file = findInFolder(subject, folder)
+    if tmp_file:
+        ret = common.fetchPage({"link": "https://apis.live.net/v5.0/%s/content?download=true&access_token=%s" % ( tmp_file, api.auth_access_token), "progress": "true"})
+
+        common.saveFile(filename, ret["content"], "wb")
+        common.log("Done")
+        return True
+    common.log("Failure")
+    return False
+
+def deleteFile(subject, folder):
+    common.log(subject)
+    global m
+
+    tmp_file = findInFolder(subject, folder)
+
+    if tmp_file:
+        res = api.delete(tmp_file)
+        common.log("Done")
+        return True
+    common.log("Failure")
+    return False
+
+def createFolder(path="me/skydrive/", folder=""):
+    common.log(repr(path) + " - " + repr(folder))
+
+    res = api.mkdir(name=folder, folder_id=path)
+    common.log("Done: "+ res["id"])
+    return res["id"]
+
+# Ugly hack since skydrive isn't case sensitive.
+# Add an uppercase C in front of all uppercase letters.
+def fixFolder(ah):
+    common.log(ah)
+    tmp = ""
+    for ch in ah:
+        if ch != ch.lower():
+            tmp += "C" + ch
+        else:
+            tmp += ch
+    common.log("Done: " + tmp)
+    return tmp
+
+def setFolder(base, keys):
+    common.log(repr(base) + " - " + repr(keys))
+    keys = keys.replace("VALUE ", "").split("/")
+
+    folder = findInFolder(base)
+    if folder:
+        common.log("Using folder: " + repr(folder))
+        ANNEX_FOLDER = folder + "/"
+    else:
+        folder = createFolder(folder=base)
+        common.log("created folder0: " + repr(folder))
+        ANNEX_FOLDER = folder + "/"
+
+    if keys[0]:
+        keys[0] = fixFolder(keys[0])
+        folder = findInFolder(keys[0], ANNEX_FOLDER)
+        if folder:
+            common.log("Using folder1: " + repr(folder))
+            ANNEX_FOLDER = folder + "/"
+        else:
+            folder = createFolder(ANNEX_FOLDER, keys[0])
+            common.log("created folder1: " + repr(folder))
+            ANNEX_FOLDER = folder + "/"
+
+    if keys[1]:
+        keys[1] = fixFolder(keys[1])
+        folder = findInFolder(keys[1], ANNEX_FOLDER)
+        if folder:
+            common.log("Using folder2: " + repr(folder))
+            ANNEX_FOLDER = folder + "/"
+        else:
+            folder = createFolder(ANNEX_FOLDER, keys[1])
+            common.log("created folder2: " + repr(folder))
+            ANNEX_FOLDER = folder + "/"
+
+    return ANNEX_FOLDER
+
+## gaproto interface
+
+def initremote(line):
+    common.log("")
+    oauth = os.getenv("OAUTH") or ""
+    myfolder = common.getConfig("folder")
+    encryption = common.getConfig("encryption")
+
+    creds = login(oauth)
+
+    if creds and len(myfolder):
+        if isinstance(creds, dict):
+            creds["auth"]["access_expires"] = creds["auth"]["access_expires"].strftime("%Y-%m-%d %H:%M:%S")
+            common.sprint('SETCONFIG creds ' + json.dumps(creds) + '')
+        common.sprint('INITREMOTE-SUCCESS')
+    else:
+        common.sprint('INITREMOTE-FAILURE You need to set OAUTH environment variables and folder and encryption parameters when running initremote.')
+    common.log("Done")
+
+def prepare(line):
+    common.log("")
+
+    oauth = os.getenv("OAUTH") or None
+
+    myfolder = common.getConfig("folder")
+    encryption = common.getConfig("encryption")
+    creds = common.getConfig("creds")
+    if len(creds):
+        creds = json.loads(creds)
+        creds = login(None, creds)
+    else:
+        creds = login(oauth)
+
+    if len(myfolder) and isinstance(creds, dict):
+        conf["folder"] = myfolder
+        if creds:
+            common.sprint('DEBUG ' + plugin)
+            creds["auth"]["access_expires"] = creds["auth"]["access_expires"].strftime("%Y-%m-%d %H:%M:%S")
+            common.sprint('SETCONFIG creds ' + json.dumps(creds) + '')
+            common.sprint('PREPARE-SUCCESS')
+        else:
+            common.sprint('PREPARE-FAILURE Login failure.')
+    else:
+        common.sprint('PREPARE-FAILURE You need to set OAUTH environment variables and folder and encryption parameters for the remote.')
+    common.log("")
+
+def transfer(line):
+    common.log("")
+    folder = setFolder(conf["folder"], common.ask("DIRHASH " + line[2]))
+
+    if line[1] == "STORE":
+        if postFile(line[2], " ".join(line[3:]), folder):
+            common.sprint('TRANSFER-SUCCESS STORE ' + line[2] + '')
+        else:
+            common.sprint('TRANSFER-FAILURE STORE ' + line[2] + ' File could not be stored')
+    if line[1] == "RETRIEVE":
+        if getFile(line[2], " ".join(line[3:]), folder):
+            common.sprint('TRANSFER-SUCCESS RETRIEVE ' + line[2] + '')
+        else:
+            common.sprint('TRANSFER-FAILURE RETRIEVE ' + line[2] + ' File could not be retrieved')
+    common.log("Done")
+
+def checkpresent(line):
+    common.log("")
+    folder = setFolder(conf["folder"], common.ask("DIRHASH " + line[1]))
+    if not len(folder):
+        common.sprint('CHECKPRESENT-UNKNOWN ' + line[1] + ' this remote is not currently available')
+        return None
+
+    if checkFile(line[1], folder):
+        common.sprint('CHECKPRESENT-SUCCESS ' + line[1] + '')
+    else:
+        common.sprint('CHECKPRESENT-FAILURE ' + line[1] + '')
+    common.log("Done")
+
+def remove(line):
+    common.log("")
+    folder = setFolder(conf["folder"], common.ask("DIRHASH " + line[1]))
+                
+    if deleteFile(line[1], folder):
+        common.sprint('REMOVE-SUCCESS ' + line[1] + '')
+    else:
+        common.sprint('REMOVE-FAILURE ' + line[1] + ' This file could not be removed')
+    common.log("Done")
+
+def getCost():
+    common.log("", 3)
+    common.sprint("COST 150")   
+
+t = time.time()
+common.log("Starting", -1)
+if __name__ == '__main__':
+    common.startRemote()

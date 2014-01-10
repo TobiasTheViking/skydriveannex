@@ -1,1 +1,0 @@
-../../../../../../share/pyshared/urllib3/packages/ssl_match_hostname/__init__.py

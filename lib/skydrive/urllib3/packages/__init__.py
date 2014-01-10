@@ -1,1 +1,0 @@
-../../../../../share/pyshared/urllib3/packages/__init__.py

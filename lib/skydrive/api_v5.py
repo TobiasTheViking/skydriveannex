@@ -437,7 +437,7 @@ class PersistentSkyDriveAPI(SkyDriveAPI, ConfigMixin):
     def auth_get_token(self, *argz, **kwz):
         # Wrapped to push new tokens to storage asap.
         ret = super(PersistentSkyDriveAPI, self).auth_get_token(*argz, **kwz)
-        self.sync()
-        return ret
+        ret2 = self.sync()
+        return ret, ret2
 
     def __del__(self): self.sync()

@@ -1,3 +1,7 @@
+# Version 0.2.0
+  - Updated to external special remote protocol
+  - Store credentials in git-annex
+
 # Version 0.1.2
   - Skydrive can't handle files larger than 100mb(Actual limit might be lower)
 
