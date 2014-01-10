@@ -33,27 +33,6 @@ class ConfigMixin(object):
 
 
     @classmethod
-    def from_json(cls, conf, **overrides):
-        '''Initialize instance from YAML configuration file,
-            writing updates (only to keys, specified by "conf_update_keys") back to it.'''
-        conf_cls = dict()
-        for ns, keys in cls.conf_update_keys.viewitems():
-            for k in keys:
-                try:
-                    v = conf.get(ns, dict()).get(k)
-                except AttributeError:
-                    if not cls.conf_raise_structure_errors: raise
-                    raise KeyError('Unable to get value for configuration parameter'
-                                   ' "{k}" in section "{ns}", check configuration file (path: {path}) syntax'
-                                   ' near the aforementioned section/value.'.format(ns=ns, k=k, path=path))
-                if v is not None:
-                    conf_cls['{}_{}'.format(ns, k)] = conf[ns][k]
-        conf_cls.update(overrides)
-        self = cls(**conf_cls)
-        self.conf = conf
-        return self
-
-    @classmethod
     def from_conf(cls, path=None, **overrides):
         '''Initialize instance from YAML configuration file,
             writing updates (only to keys, specified by "conf_update_keys") back to it.'''
@@ -69,7 +48,6 @@ class ConfigMixin(object):
             #conf = yaml.load("client:\n  id: 000000004C0F20A9\n  secret:  HgkEDnsuysRqhpe3s3vyvznzrMOlTaCo\n")
             conf = yaml.load(src)
             portalocker.unlock(src)
-
         conf.setdefault('conf_save', path)
 
         conf_cls = dict()
@@ -91,27 +69,9 @@ class ConfigMixin(object):
         return self
 
     def sync(self):
-        if not self.conf_save: 
-            conf_updated = False
-            conf = self.conf
-            for ns, keys in self.conf_update_keys.viewitems():
-                for k in keys:
-                    v = getattr(self, '{}_{}'.format(ns, k), None)
-                    if isinstance(v, unicode): v = v.encode('utf-8')
-                    if v != conf.get(ns, dict()).get(k):
-                        # log.debug(
-                        # 	'Different val ({}.{}): {!r} != {!r}'\
-                            # 	.format(ns, k, v, conf.get(ns, dict()).get(k)) )
-                        conf.setdefault(ns, dict())[k] = v
-                        conf_updated = True
-
-            if conf_updated:
-                self.conf = conf
-            return conf
-
+        if not self.conf_save: return
         from skydrive import portalocker
         import yaml
-
 
         retry = False
         with open(self.conf_save, 'r+') as src:
