@@ -1,1 +1,0 @@
-../../../../share/pyshared/urllib3/connectionpool.py
