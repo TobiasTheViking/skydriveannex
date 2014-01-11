@@ -35,9 +35,8 @@ def login(token=None, conf={'client': {'secret': 'HgkEDnsuysRqhpe3s3vyvznzrMOlTa
     global api
     api = skydrive.api_v5.PersistentSkyDriveAPI.from_json(conf)
 
-    if token and False:
+    if token:
         api.auth_user_process_url(token)
-        ret = api.auth_get_token()
 
     try:
         ret = api.auth_get_token()
@@ -51,8 +50,8 @@ def login(token=None, conf={'client': {'secret': 'HgkEDnsuysRqhpe3s3vyvznzrMOlTa
 
         return False
         
-    ret, ncreds = ret
     common.log('API authorization was completed successfully: ' + repr(ret))
+    ret, ncreds = ret
 
     common.log("res: " + repr(ret), 3)
     if len(ret) == 3:
