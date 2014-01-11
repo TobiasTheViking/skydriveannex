@@ -1,3 +1,6 @@
+# Version 0.2.1
+  - Fix from_json
+
 # Version 0.2.0
   - Updated to external special remote protocol
   - Store credentials in git-annex

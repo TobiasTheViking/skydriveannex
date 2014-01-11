@@ -16,7 +16,7 @@ except:
     dbglevel = 0
 
 conf = {}
-version = "0.2.0"
+version = "0.2.1"
 plugin = "skydriveannex-" + version
 
 pwd = os.path.realpath(__file__)
