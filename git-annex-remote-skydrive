@@ -29,6 +29,7 @@ sys.path.append(pwd + '/lib')
 import CommonFunctions as common
 import skydrive.api_v5
 api = None
+cache = {}
 
 def login(token=None, conf={'client': {'secret': 'HgkEDnsuysRqhpe3s3vyvznzrMOlTaCo', 'id': '000000004C0F20A9'}}):
     common.log(repr(token) + " - " + repr(len(conf)))
@@ -78,21 +79,36 @@ def postFile(subject, filename, folder):
 
 def findInFolder(subject, folder="me/skydrive"):
     common.log("%s(%s) - %s(%s)" % (repr(subject), type(subject), repr(folder), type(folder)), 0)
+    global cache
 
-    try:
-        items = api.listdir(folder)
-    except Exception as e:
-        common.log("Exception: " + repr(e), -1)
-        return False
+    tpath = (folder + "/" + subject).replace("//", "/")
+    if tpath in cache:
+        common.log("Returning from cache")
+        return cache[tpath]
+
+    items = False
+    while items == False:
+        try:
+            common.log("Sending listdir request: " + repr(items))
+            items = api.listdir(folder)
+        except Exception as e:
+            common.log("Exception api.listdir: " + repr(e), -1)
+	    if repr(e).find("500 Server Error") > -1:
+	       time.sleep(3)
+	    else:
+	       break
 
     for item in items:
-        common.log("subject: " + repr(subject) + " - name: " + repr(item["name"]) + " - " + repr(item), 3)
-        if item["name"] == subject:
-            common.log("Done: " + repr(item["id"]))
-            return item["id"]
+        common.log("items subject: " + repr(subject) + " - name: " + repr(item["name"]) + " - tpath: " + tpath + " - " + repr(item), 3)
+        cache[(folder + "/" + item["name"]).replace("//", "/")] = item["id"]
 
+    for name in cache.keys():
+        common.log("cache tpath: " + repr(tpath) + " - name: " + repr(name) + " - " + repr(cache[name]), 3)
+        if name == tpath:
+            common.log("Done: " + repr(cache[name]))
+            return cache[name]
     common.log("Failure")
-    return False
+    return None
 
 def checkFile(subject, folder):
     common.log(subject)
@@ -136,7 +152,16 @@ def deleteFile(subject, folder):
 def createFolder(path="me/skydrive/", folder=""):
     common.log(repr(path) + " - " + repr(folder))
 
-    res = api.mkdir(name=folder, folder_id=path)
+    try:
+        res = api.mkdir(name=folder, folder_id=path)
+    except Exception as e:
+        common.log("Exception api.mkdir: " + repr(e), -1)
+        try:
+            res = api.mkdir(name=folder, folder_id=path)
+        except Exception as e:
+            common.log("Exception api.mkdir 2nd: " + repr(e), -1)
+	    return False
+
     common.log("Done: "+ res["id"])
     return res["id"]
 
